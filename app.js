@@ -1,6 +1,6 @@
 const express = require('express');
 const chalk = require('chalk');
-const mongoose = require('mongoose');
+const Todo = require('./database/Schemas/Todo.schema');
 
 //` Setting up the environment variables
 const dotenv = require('dotenv');
@@ -19,39 +19,7 @@ global._e = (parameter) => {
 
 const { PORT, DATABASE } = process.env;
 
-mongoose.connect(DATABASE, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-mongoose.connection.on('open', () => {
-  _('Connected to MongoDB');
-});
-
-mongoose.connection.on('error', () => {
-  _e('Not connected to MongoDB');
-});
-
-// # DATABASE SCHEMA
-
-const todo = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  completed: {
-    type: Boolean,
-    default: false,
-  },
-});
-
-const todoModel = mongoose.model('todo', todo);
-
-// # ----------------------
+require('./database/connection');
 
 const app = express();
 
@@ -61,7 +29,7 @@ app.post('/add_todo', async (req, res) => {
   const { title, description, completed } = req.body;
 
   try {
-    const newTodo = await todoModel.create({
+    const newTodo = await Todo.create({
       title,
       description,
       completed,
@@ -79,39 +47,10 @@ app.post('/add_todo', async (req, res) => {
       data: e.message,
     });
   }
-
-  // const newTodo = new todoModel({
-  //   title,
-  //   description,
-  // });
-
-  // __(newTodo);
-
-  // await newTodo.save();
-
-  // todoModel
-  //   .create({
-  //     title,
-  //     description,
-  //   })
-  //   .then((newTodo) => {
-  //     res.status(201).json({
-  //       status: 'success',
-  //       message: 'Todo added successfully',
-  //       data: newTodo,
-  //     });
-  //   })
-  //   .catch((err) => {
-  //     res.status(500).json({
-  //       status: 'error',
-  //       message: 'Todo not added',
-  //       data: err,
-  //     });
-  //   });
 });
 
 app.get('/', async (req, res) => {
-  const todo = await todoModel.find();
+  const todo = await Todo.find();
   res.status(200).json(todo);
 });
 
