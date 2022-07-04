@@ -1,6 +1,6 @@
 const express = require('express');
 const chalk = require('chalk');
-const fs = require('fs');
+const mongoose = require('mongoose');
 
 //` Setting up the environment variables
 const dotenv = require('dotenv');
@@ -17,97 +17,102 @@ global._e = (parameter) => {
   console.log(chalk.red.bgRed(parameter));
 };
 
-const { PORT } = process.env;
+const { PORT, DATABASE } = process.env;
+
+mongoose.connect(DATABASE, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+mongoose.connection.on('open', () => {
+  _('Connected to MongoDB');
+});
+
+mongoose.connection.on('error', () => {
+  _e('Not connected to MongoDB');
+});
+
+// # DATABASE SCHEMA
+
+const todo = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+    required: true,
+  },
+  completed: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const todoModel = mongoose.model('todo', todo);
+
+// # ----------------------
 
 const app = express();
 
 app.use(express.json());
 
-// #Creating a server
+app.post('/add_todo', async (req, res) => {
+  const { title, description, completed } = req.body;
 
-app.get('/', (req, res) => {
-  fs.readFile('./database.json', 'utf8', (err, data) => {
-    if (err) {
-      _e('SOME ERROR OCCURRED');
-      __(err);
-      res.status(500).json({ message: 'SOME ERROR OCCURRED' });
-      return;
-    }
-
-    res.status(200).json({
-      status: 'success',
-      data: JSON.parse(data),
+  try {
+    const newTodo = await todoModel.create({
+      title,
+      description,
+      completed,
     });
-  });
 
-  // const data = fs.readFileSync('./database.json', 'utf8');
+    res.status(201).json({
+      status: 'success',
+      message: 'Todo added successfully',
+      data: newTodo,
+    });
+  } catch (e) {
+    res.status(400).json({
+      status: 'error',
+      message: 'Todo not added',
+      data: e.message,
+    });
+  }
 
-  // res.status(200).json({
-  //   status: 'success',
-  //   data: JSON.parse(data),
+  // const newTodo = new todoModel({
+  //   title,
+  //   description,
   // });
+
+  // __(newTodo);
+
+  // await newTodo.save();
+
+  // todoModel
+  //   .create({
+  //     title,
+  //     description,
+  //   })
+  //   .then((newTodo) => {
+  //     res.status(201).json({
+  //       status: 'success',
+  //       message: 'Todo added successfully',
+  //       data: newTodo,
+  //     });
+  //   })
+  //   .catch((err) => {
+  //     res.status(500).json({
+  //       status: 'error',
+  //       message: 'Todo not added',
+  //       data: err,
+  //     });
+  //   });
 });
 
-app.post('/', (req, res) => {
-  fs.readFile('./database.json', 'utf8', (err, data) => {
-    if (err) {
-      _e('SOME ERROR OCCURRED');
-      __(err);
-      res.status(500).json({ message: 'SOME ERROR OCCURRED' });
-      return;
-    }
-
-    const { name, release } = req.body;
-
-    const _data = JSON.parse(data);
-
-    if (!release) {
-      _e('Release is required');
-      res.status(400).json({ message: 'Release  Date is required' });
-      return;
-    }
-
-    const duplicate = _data.find((el) => {
-      if (el.name === name) {
-        return true;
-      }
-    });
-
-    if (duplicate) {
-      res.status(400).json({
-        status: 'fail',
-        message: 'Duplicate entry',
-      });
-      return;
-    }
-
-    _data.push({
-      name,
-      release,
-    });
-
-    fs.writeFile('./database.json', JSON.stringify(_data), (err) => {
-      if (err) {
-        _e('SOME ERROR OCCURRED');
-        __(err);
-        res.status(500).json({ message: 'SOME ERROR OCCURRED' });
-        return;
-      }
-
-      res.status(201).json({ message: 'DATA CREATED' });
-    });
-  });
-
-  // const dataJSON = fs.readFileSync('./database.json', 'utf8');
-
-  // const parsedData = JSON.parse(dataJSON);
-  // parsedData.push(req.body);
-
-  // fs.writeFileSync('./database.json', JSON.stringify(parsedData));
-
-  // res.status(201).json({
-  //   message: 'Your data has been added successfully',
-  // });
+app.get('/', async (req, res) => {
+  const todo = await todoModel.find();
+  res.status(200).json(todo);
 });
 
 app.listen(PORT, () => {
