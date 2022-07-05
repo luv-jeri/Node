@@ -4,7 +4,7 @@
   "description": "Full Node JS Sessions",
   "main": "index.js",
   "scripts": {
-    "start": "node app.js",
+    "start": "node app.js DEV=d ",
     "dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
