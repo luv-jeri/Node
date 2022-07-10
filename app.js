@@ -9,7 +9,9 @@ dotenv.config({
 });
 
 require('./database/connection');
-
+console.log('Ok');
+console.log('Ok');
+console.log('Ok');
 // ! Note: The below code is not required for the project to work
 global.__ = console.log;
 global._ = (parameter) => {
